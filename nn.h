@@ -7,10 +7,12 @@
 #define NN_RANDOM() (((double)rand())/RAND_MAX)
 #endif
 
+typedef double (*nn_actfun)(double a);
+
 typedef struct nn {
 
     /* How many inputs, outputs, and hidden neurons. */
-    int inputs, hidden_layers, hidden, outputs
+    int inputs, hidden_layers, hidden, outputs;
 
     /* Which activation function to use for hidden neurons. Default: nn_act_sigmoid */
     nn_actfun activation_hidden;
@@ -34,3 +36,22 @@ typedef struct nn {
     double *delta;
 
   } nn;
+
+/* Creates and returns a new ann. */
+nn *nn_init(int inputs, int hidden_layers, int hidden, int outputs);
+
+/* Sets weights randomly. Called by init. */
+void nn_randomize(nn *ann);
+
+/* Runs the feedforward algorithm to calculate the ann's output. */
+double const *nn_run(nn const *ann, double const *inputs);
+
+
+/* Does a single backprop update. */
+void nn_train(nn const *ann, double const *inputs, double const *desired_outputs, double learning_rate);
+
+
+
+double nn_act_sigmoid(double a);
+double nn_act_threshold(double a);
+double nn_act_linear(double a);
