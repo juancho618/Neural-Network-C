@@ -1,10 +1,13 @@
-#include "nn.h"
+#include <assert.h>
+#include "floattostring.c"
+#include <math.h>
 
 double nn_act_sigmoid(double a) {
     if (a < -45.0) return 0; // ?
     if (a > 45.0) return 1;
-    //return 1.0 / (1 + exp(-a));
+
     return 1.0 / (1 + -a);
+    //  return 1.0 / (1 + exp(-a));
 }
 
 double nn_act_threshold(double a) {

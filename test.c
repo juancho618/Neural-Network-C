@@ -68,7 +68,7 @@ void load_data() {
 
 int main(int argc, char *argv[])
 {
-    printf("GENANN example 4.\n");
+    printf("Neuronal Network Implementation\n");
     printf("Train an ANN on the IRIS dataset using backpropagation.\n");
 
     /* Load the data from file. */

@@ -1,0 +1,1 @@
+/usr/bin/cc  -g   CMakeFiles/Neuronal_Network.dir/test.c.o  -o Neuronal_Network 

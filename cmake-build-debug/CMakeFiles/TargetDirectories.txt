@@ -1,0 +1,3 @@
+/home/juan/Neuronal Network Project/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/juan/Neuronal Network Project/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/juan/Neuronal Network Project/cmake-build-debug/CMakeFiles/Neuronal_Network.dir

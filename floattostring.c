@@ -30,6 +30,8 @@ int MyPow(int a,int b)
 }
 
 
+
+
 int intToStr(int x, char str[], int d)
 {
     int i = 0;

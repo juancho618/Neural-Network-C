@@ -1,0 +1,38 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/juan/Neuronal Network Project/floattostring.c
+stdio.h
+-
+math.h
+-
+
+/home/juan/Neuronal Network Project/nn.c
+assert.h
+-
+floattostring.c
+/home/juan/Neuronal Network Project/floattostring.c
+math.h
+-
+
+/home/juan/Neuronal Network Project/nn.h
+stdio.h
+-
+
+/home/juan/Neuronal Network Project/test.c
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+nn.h
+/home/juan/Neuronal Network Project/nn.h
+nn.c
+/home/juan/Neuronal Network Project/nn.c
+
