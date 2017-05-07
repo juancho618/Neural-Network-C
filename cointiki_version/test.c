@@ -2,23 +2,31 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
-#include "random.h"
+//#include <assert.h>
+#include <math.h>
+#include "random.c"
 //#include "nn.h"
 //#include "nn.c"
-#include "cfs/cfs.h"
-#include "cfs/cfs-coffee.h"
+//#include "cfs/cfs.h"
+//#include "cfs/cfs-coffee.h"
 
-typedef double (*nn_actfun)(double a);
-double nn_act_threshold(double a);
-double nn_act_linear(double a);
+typedef float (*nn_actfun)(float a);
+float nn_act_threshold(float a);
+float nn_act_linear(float a);
 
 
-double nn_act_sigmoid(double a) {
+float nn_act_sigmoid(float a) {
 
     //if (a < -45.0) return 0; // ?
     //if (a > 45.0) return 1;
-    return 1.0; // TODO: sigmoid function not workig!
+    //int len;
+    //leni = sizeof(a);
+    if (a == 0.5) printf("hi\n");
+    int b = a*10;
+    float c = b/10.0;
+    float d = round(b)/10;
+    //printf("integer lengh: %i\n", len );
+    return (1.0 /(1 + expf(-0.5))); // TODO: sigmoid function not working! due to the size of a
     //return 1.0 / (1 + -a);
     //return 1.0 / (1 + exp(-a));
 }
@@ -28,7 +36,7 @@ double genann_act_threshold(double a) {
 }*/
 
 
-double nn_act_linear(double a) {
+float nn_act_linear(float a) {
     return a;
 }
 
@@ -62,19 +70,22 @@ typedef struct nn {
 
   // Assign random weights
   void nn_randomize(struct nn *ann) {
+      void random_init(unsigned short seed);
       int i;
       for (i = 0; i < (*ann).total_weights; ++i) {
-          //double r = random_rand();  TODO: different random output, need to be ajusted
+          // double r = (((double)random_rand())/RANDOM_RAND_MAX); //TODO: too big?, How to print it
+
+          //printf("the random generated number: %i\n", r );
           /* Sets weights from -0.5 to 0.5. */
           //(*ann).weight[i] = r - 0.5;
-          (*ann).weight[i] = - 0.5;
+          (*ann).weight[i] = -0.5;
       }
   }
 
-  double const *nn_run(struct nn const *ann, int const *inputs) {
-    double const *w = (*ann).weight;
-    double *o = (*ann).output + (*ann).inputs;
-    double const *i = (*ann).output;
+  int const *nn_run(struct nn const *ann, int const *inputs) {
+    float const *w = (*ann).weight;
+    float *o = (*ann).output + (*ann).inputs;
+    float const *i = (*ann).output;
     memcpy((*ann).output, inputs, sizeof(int) * (*ann).inputs);
 
     int h, j, k;
@@ -87,15 +98,14 @@ typedef struct nn {
    for (h = 0; h < (*ann).hidden_layers; ++h) {
        for (j = 0; j < (*ann).hidden; ++j) {
 
-           double sum = 0;
+           float sum = 0;
            for (k = 0; k < (h == 0 ? (*ann).inputs : (*ann).hidden) + 1; ++k) {
-             printf("jojojo\n" );
              if (k == 0) {
-                 sum += *w++ * -1.0;
+                 sum += *w++ * -1.0; // threshold parameter.
              } else {
                  sum += *w++ * i[k-1];
              }
-             *o++ = act(sum);
+             *o++ = act(0.005);
            }
        }
 
@@ -105,7 +115,7 @@ typedef struct nn {
 
     /* Figure output layer. */
     for (j = 0; j < (*ann).outputs; ++j) {
-        double sum = 0;
+        float sum = 0;
         for (k = 0; k < ((*ann).hidden_layers ? (*ann).hidden : (*ann).inputs) + 1; ++k) {
             if (k == 0) {
                 sum += *w++ * -1.0;
@@ -113,7 +123,7 @@ typedef struct nn {
                 sum += *w++ * i[k-1];
             }
         }
-        *o++ = acto(sum);
+        *o++ = acto(0.5);
     }
 
     /* Sanity check that we used all weights and wrote all outputs. */
@@ -135,8 +145,8 @@ typedef struct nn {
       if (outputs < 1) return 0; // at least 1 output_weights
       if (hidden_layers > 0 && hidden < 1) return 0; // if there is a hidden layer it should be at lest 1 node
 
-      const int hidden_weights = hidden_layers ? (inputs+1) * hidden + (hidden_layers-1) * (hidden+1) * hidden : 0; // connetion to the hidden layer + nodes in the hidden
-      const int output_weights = (hidden_layers ? (hidden+1) : (inputs+1)) * outputs; // number of outputs connection from hidden layer + output nodes
+      const int hidden_weights = hidden_layers ? (inputs+1) * hidden + (hidden_layers-1) * (hidden+1) * hidden : 0; // connetion to the hidden layer + nodes in the hidden +1 due to the threshold
+      const int output_weights = (hidden_layers ? (hidden+1) : (inputs+1)) * outputs; // number of outputs connection from hidden layer + output nodes +1 due to the threshold
       const int total_weights = (hidden_weights + output_weights);
 
       const int total_neurons = (inputs + hidden * hidden_layers + outputs);
@@ -155,7 +165,7 @@ typedef struct nn {
       (*ret).total_weights = total_weights;
       (*ret).total_neurons = total_neurons;
       /* Set pointers. */
-      (*ret).weight = (double*)((char*)ret + sizeof(nn));
+      (*ret).weight = (float*)(sizeof(nn));
       (*ret).output = (*ret).weight + (*ret).total_weights;
       (*ret).delta = (*ret).output + (*ret).total_neurons;
       nn *neu = &ret; // doing the pointer to the neuronal network
@@ -167,9 +177,11 @@ typedef struct nn {
       return ret;
   }
 
-  void nn_train(nn const *ann, int const *inputs, int const *desired_outputs, double learning_rate) {
+  void nn_train(nn const *ann, int const *inputs, int const *desired_outputs, float learning_rate) {
     nn_run(ann, inputs);
     //TODO: continue adding the values for the Training function
+
+    // deltas calulation
     int h, j, k;
 
     {
@@ -188,6 +200,8 @@ typedef struct nn {
             for (j = 0; j < (*ann).outputs; ++j) {
                 /**d++ = (*t - *o) * *o * (1.0 - *o); //TODO: output error probably due to memory or a double
                 ++o; ++t;*/
+                ++o;
+                ++t;
             }
         }
       }
@@ -252,17 +266,18 @@ PROCESS_THREAD(neuronal, ev, data)
     nn *ann = nn_init(2, 1, 2, 1);
 
     // Training the Neuronal Network
-    for (i = 0; i < 300; ++i) {
+/*
+    for (i = 0; i < 20; ++i) {
       nn_train(ann, input[0], output + 0, 3);
       nn_train(ann, input[1], output + 1, 3);
       nn_train(ann, input[2], output + 2, 3);
       nn_train(ann, input[3], output + 3, 3);
-    }
+    }*/
 
-    printf("Output for [%1.i, %1.i]\n", input[0][0], input[0][1]);
-    printf("Output for [%1.i, %1.i]\n", input[1][0], input[1][1]);
-    printf("Output for [%1.i, %1.i]\n", input[2][0], input[2][1]);
-    printf("Output for [%1.i, %1.i]\n", input[3][0], input[3][1]);
+    printf("Output for [%1.i, %1.i] is %1.i.\n", input[0][0], input[0][1], *nn_run(ann, input[0]));
+    printf("Output for [%1.i, %1.i] is %1.i.\n", input[1][0], input[1][1], *nn_run(ann, input[1]));
+    printf("Output for [%1.i, %1.i] is %1.i.\n", input[2][0], input[2][1], *nn_run(ann, input[2]));
+    printf("Output for [%1.i, %1.i] is %1.i.\n", input[3][0], input[3][1], *nn_run(ann, input[3]));
     //const double output[4] = {0, 1, 1, 0};
     //int i;
     //nn *ann = nn_init(2, 1, 2, 1);
