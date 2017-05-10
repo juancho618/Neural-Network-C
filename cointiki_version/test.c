@@ -23,10 +23,10 @@ float nn_act_sigmoid(float a) {
     //leni = sizeof(a);
     if (a == 0.5) printf("hi\n");
     int b = a*10;
-    float c = b/10.0;
+    float c = 0.5/10.0;
     float d = round(b)/10;
     //printf("integer lengh: %i\n", len );
-    return (1.0 /(1 + expf(-0.5))); // TODO: sigmoid function not working! due to the size of a
+    return (1.0 /(1 + expf((float)-0.5))); // TODO: sigmoid function not working! due to the size of a
     //return 1.0 / (1 + -a);
     //return 1.0 / (1 + exp(-a));
 }
@@ -105,7 +105,7 @@ typedef struct nn {
              } else {
                  sum += *w++ * i[k-1];
              }
-             *o++ = act(0.005);
+             *o++ = act((float)0.005);
            }
        }
 
@@ -123,7 +123,7 @@ typedef struct nn {
                 sum += *w++ * i[k-1];
             }
         }
-        *o++ = acto(0.5);
+        *o++ = acto((float)0.5);
     }
 
     /* Sanity check that we used all weights and wrote all outputs. */

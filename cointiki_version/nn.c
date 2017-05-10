@@ -68,7 +68,7 @@ nn *nn_init(int inputs, int hidden_layers, int hidden, int outputs) {
 
 
 // Run algortihm givin the defined architecture and the data input
-double const *nn_run(nn const *ann, double const *inputs) {
+  double const *nn_run(nn const *ann, double const *inputs) {
     double const *w = (*ann).weight;
     double *o = (*ann).output + (*ann).inputs;
     double const *i = (*ann).output;
