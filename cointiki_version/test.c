@@ -4,7 +4,7 @@
 #include <string.h>
 //#include <assert.h>
 #include <math.h>
-#include "random.c"
+#include "lib/random.h"
 //#include "nn.h"
 //#include "nn.c"
 //#include "cfs/cfs.h"
@@ -16,24 +16,8 @@ float nn_act_linear(float a);
 
 
 float nn_act_sigmoid(float a) {
-
-    //if (a < -45.0) return 0; // ?
-    //if (a > 45.0) return 1;
-    //int len;
-    //leni = sizeof(a);
-    if (a == 0.5) printf("hi\n");
-    int b = a*10;
-    float c = 0.5/10.0;
-    float d = round(b)/10;
-    //printf("integer lengh: %i\n", len );
-    return (1.0 /(1 + expf((float)-0.5))); // TODO: sigmoid function not working! due to the size of a
-    //return 1.0 / (1 + -a);
-    //return 1.0 / (1 + exp(-a));
+    return (1.0 /(1 + expf((float)a)); 
 }
-/*
-double genann_act_threshold(double a) {
-    return a > 0;
-}*/
 
 
 float nn_act_linear(float a) {
@@ -73,12 +57,8 @@ typedef struct nn {
       void random_init(unsigned short seed);
       int i;
       for (i = 0; i < (*ann).total_weights; ++i) {
-          // double r = (((double)random_rand())/RANDOM_RAND_MAX); //TODO: too big?, How to print it
-
-          //printf("the random generated number: %i\n", r );
-          /* Sets weights from -0.5 to 0.5. */
-          //(*ann).weight[i] = r - 0.5;
-          (*ann).weight[i] = -0.5;
+          float r = (((float)random_rand())/RANDOM_RAND_MAX); 
+          (*ann).weight[i] = r-0.5;
       }
   }
 
@@ -105,7 +85,7 @@ typedef struct nn {
              } else {
                  sum += *w++ * i[k-1];
              }
-             *o++ = act((float)0.005);
+             *o++ = act(sum);
            }
        }
 
@@ -123,15 +103,8 @@ typedef struct nn {
                 sum += *w++ * i[k-1];
             }
         }
-        *o++ = acto((float)0.5);
+        *o++ = acto(sum);
     }
-
-    /* Sanity check that we used all weights and wrote all outputs. */
-   //assert(w - (*ann).weight == (*ann).total_weights); // TODO: check what is the utility of assert and if it is necessary
-   //assert(o - (*ann).output == (*ann).total_neurons);
-
-
-    printf("Then we run\n" );
     return ret;
   }
 
@@ -151,10 +124,7 @@ typedef struct nn {
 
       const int total_neurons = (inputs + hidden * hidden_layers + outputs);
 
-      /* Allocate extra size for weights, outputs, and deltas. */
-      //const int size = sizeof(nn) + sizeof(double) * (total_weights + total_neurons + (total_neurons - inputs));
-      //nn *ret = mmem_alloc(&mmem,size);
-      //if (!ret) return 0;
+      
       struct nn *ret;
 
       (*ret).inputs = inputs;
@@ -185,9 +155,9 @@ typedef struct nn {
     int h, j, k;
 
     {
-        double const *o = (*ann).output + (*ann).inputs + (*ann).hidden * (*ann).hidden_layers; // First output.
-        double *d = (*ann).delta + (*ann).hidden * (*ann).hidden_layers; // First delta.
-        double const *t = desired_outputs; // First desired output.
+        float const *o = (*ann).output + (*ann).inputs + (*ann).hidden * (*ann).hidden_layers; // First output.
+        float *d = (*ann).delta + (*ann).hidden * (*ann).hidden_layers; // First delta.
+        float const *t = desired_outputs; // First desired output.
 
 
 
@@ -211,34 +181,92 @@ typedef struct nn {
     for (h = (*ann).hidden_layers - 1; h >= 0; --h) {
 
         // Find first output and delta in this layer.
-        double const *o = (*ann).output + (*ann).inputs + (h * (*ann).hidden);
-        double *d = (*ann).delta + (h * (*ann).hidden);
+        float const *o = (*ann).output + (*ann).inputs + (h * (*ann).hidden);
+        float *d = (*ann).delta + (h * (*ann).hidden);
 
         // Find first delta in following layer (which may be hidden or output).
-        double const * const dd = (*ann).delta + ((h+1) * (*ann).hidden);
+        float const * const dd = (*ann).delta + ((h+1) * (*ann).hidden);
 
         // Find first weight in following layer (which may be hidden or output).
-        double const * const ww = (*ann).weight + (((*ann).inputs+1) * (*ann).hidden) + (((*ann).hidden+1) * (*ann).hidden * (h));
+        float const * const ww = (*ann).weight + (((*ann).inputs+1) * (*ann).hidden) + (((*ann).hidden+1) * (*ann).hidden * (h));
 
         for (j = 0; j < (*ann).hidden; ++j) {
 
-            double delta = 0;
-            /*
+            float delta = 0;
+            
             for (k = 0; k < (h == (*ann).hidden_layers-1 ? (*ann).outputs : (*ann).hidden); ++k) {
-                const double forward_delta = dd[k];       TODO: another overflow problem!
+                const float forward_delta = dd[k];       TODO: another overflow problem!
                 const int windex = k * ((*ann).hidden + 1) + (j + 1);
-                const double forward_weight = ww[windex];
+                const float forward_weight = ww[windex];
                 delta += forward_delta * forward_weight;*
             }
-            /*
             *d = *o * (1.0-*o) * delta;
             ++d; ++o;
-            */
+            
         }
     }
 
+     /* Train the outputs. */
+    {
+        /* Find first output delta. */
+        double const *d = ann->delta + ann->hidden * ann->hidden_layers; /* First output delta. */
 
-    printf("We are tranining hard\n");
+        /* Find first weight to first output delta. */
+        double *w = ann->weight + (ann->hidden_layers
+                ? ((ann->inputs+1) * ann->hidden + (ann->hidden+1) * ann->hidden * (ann->hidden_layers-1))
+                : (0));
+
+        /* Find first output in previous layer. */
+        double const * const i = ann->output + (ann->hidden_layers
+                ? (ann->inputs + (ann->hidden) * (ann->hidden_layers-1))
+                : 0);
+
+        /* Set output layer weights. */
+        for (j = 0; j < ann->outputs; ++j) {
+            for (k = 0; k < (ann->hidden_layers ? ann->hidden : ann->inputs) + 1; ++k) {
+                if (k == 0) {
+                    *w++ += *d * learning_rate * -1.0;
+                } else {
+                    *w++ += *d * learning_rate * i[k-1];
+                }
+            }
+
+            ++d;
+        }
+
+        assert(w - ann->weight == ann->total_weights);
+    }
+
+
+    /* Train the hidden layers. */
+    for (h = ann->hidden_layers - 1; h >= 0; --h) {
+
+        /* Find first delta in this layer. */
+        float const *d = ann->delta + (h * ann->hidden);
+
+        /* Find first input to this layer. */
+        float const *i = ann->output + (h
+                ? (ann->inputs + ann->hidden * (h-1))
+                : 0);
+
+        /* Find first weight to this layer. */
+        float *w = ann->weight + (h
+                ? ((ann->inputs+1) * ann->hidden + (ann->hidden+1) * (ann->hidden) * (h-1))
+                : 0);
+
+
+        for (j = 0; j < ann->hidden; ++j) {
+            for (k = 0; k < (h == 0 ? ann->inputs : ann->hidden) + 1; ++k) {
+                if (k == 0) {
+                    *w++ += *d * learning_rate * -1.0;
+                } else {
+                    *w++ += *d * learning_rate * i[k-1];
+                }
+            }
+            ++d;
+        }
+
+    }
   }
 
 PROCESS(neuronal, "testing nn");
@@ -250,15 +278,6 @@ PROCESS_THREAD(neuronal, ev, data)
     printf("Neuronal Network Implementation\n");
     printf("Please work!.\n");
 
-    /* Load the data from file. */
-    //load_data();
-
-    /* 4 inputs.
-     * 1 hidden layer(s) of 4 neurons.
-     * 3 outputs (1 per class)
-     */
-    //nn *ann = nn_init(4, 1, 4, 3);
-
 
     const int input[4][2] = {{0, 0}, {0, 1}, {1, 0}, {1, 1}}; //integer definition
     const int output[4] = {0, 1, 1, 0}; // integer definition
@@ -266,38 +285,18 @@ PROCESS_THREAD(neuronal, ev, data)
     nn *ann = nn_init(2, 1, 2, 1);
 
     // Training the Neuronal Network
-/*
-    for (i = 0; i < 20; ++i) {
+    for (i = 0; i < 200; ++i) {
       nn_train(ann, input[0], output + 0, 3);
       nn_train(ann, input[1], output + 1, 3);
       nn_train(ann, input[2], output + 2, 3);
       nn_train(ann, input[3], output + 3, 3);
-    }*/
+    }
 
     printf("Output for [%1.i, %1.i] is %1.i.\n", input[0][0], input[0][1], *nn_run(ann, input[0]));
     printf("Output for [%1.i, %1.i] is %1.i.\n", input[1][0], input[1][1], *nn_run(ann, input[1]));
     printf("Output for [%1.i, %1.i] is %1.i.\n", input[2][0], input[2][1], *nn_run(ann, input[2]));
     printf("Output for [%1.i, %1.i] is %1.i.\n", input[3][0], input[3][1], *nn_run(ann, input[3]));
-    //const double output[4] = {0, 1, 1, 0};
-    //int i;
-    //nn *ann = nn_init(2, 1, 2, 1);
-    /*
-    // Train on the four labeled data points many times.
-       for (i = 0; i < 300; ++i) {
-           nn_train(ann, input[0], output + 0, 3);
-           nn_train(ann, input[1], output + 1, 3);
-           nn_train(ann, input[2], output + 2, 3);
-           nn_train(ann, input[3], output + 3, 3);
-       }
+   
 
-       // Run the network and see what it predicts. *
-       printf("Output for [%1.f, %1.f] is %1.f.\n", input[0][0], input[0][1], *nn_run(ann, input[0]));
-       printf("Output for [%1.f, %1.f] is %1.f.\n", input[1][0], input[1][1], *nn_run(ann, input[1]));
-       printf("Output for [%1.f, %1.f] is %1.f.\n", input[2][0], input[2][1], *nn_run(ann, input[2]));
-       printf("Output for [%1.f, %1.f] is %1.f.\n", input[3][0], input[3][1], *nn_run(ann, input[3]));
-
-
-    //nn_free(ann);*/
-
-      	PROCESS_END();
+    PROCESS_END();
     }
